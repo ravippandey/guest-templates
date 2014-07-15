@@ -517,6 +517,23 @@ let rhel6x_template name architecture ?(is_experimental=false) flags =
 		vM_recommendations = recommendations ~memory:maximum_supported_memory_gib ();
 	}
 
+let rhel7x_template name architecture ?(is_experimental=false) flags =
+	let maximum_supported_memory_gib = match architecture with
+		| X32 -> 16
+		| X64 -> 128
+		| X64_debianlike -> assert false
+	in
+	let name = make_long_name name architecture is_experimental in
+	let bt = eli_install_template (default_memory_parameters 512L) name "rhlike" true "graphical utf8" in
+	let m_a_s =
+		if List.mem Limit_machine_address_size flags
+		then [(machine_address_size_key_name, machine_address_size_key_value)]
+		else [] in
+	{ bt with 
+		vM_other_config = (install_methods_otherconfig_key, "cdrom,nfs,http,ftp") :: ("rhel7","true") :: m_a_s @ bt.vM_other_config;
+		vM_recommendations = recommendations ~memory:maximum_supported_memory_gib ();
+	}
+
 type memory =
 | MiB of int
 | GiB of int
@@ -657,8 +674,7 @@ let create_all_templates rpc session_id =
 		rhel6x_template "Oracle Enterprise Linux 6" X64 [    ];
 		rhel6x_template "CentOS 6" X32 [    ];
 		rhel6x_template "CentOS 6" X64 [    ];
-		hvm_linux_template "Red Hat Enterprise Linux 7" (MiB 512) (GiB 512)  (GiB 8);
-		hvm_linux_template "Ubuntu Trusty Tahr 14.04" (MiB 512) (GiB 512)  (GiB 8);
+		rhel7x_template "Red Hat Enterprise Linux 7"   X64 [    ];
 		hvm_linux_template "SUSE Linux Enterprise Server 12" ~is_experimental:true (MiB 512) (GiB 512) (GiB 8);
 
 		sles10sp1_template "SUSE Linux Enterprise Server 10 SP1" X32 [    ];
@@ -691,6 +707,8 @@ let create_all_templates rpc session_id =
 		debian_template "Ubuntu Precise Pangolin 12.04" "precise" X32 ~max_vcpus:8 ~cmdline:"-- quiet console=hvc0 d-i:base-installer/kernel/image=linux-generic-pae" [    ];
 		debian_template "Ubuntu Precise Pangolin 12.04" "precise" X64_debianlike ~max_mem_gib:128 ~max_vcpus:128 [    ];
 
+		debian_template "Ubuntu Trusty Tahr 14.04" "trusty" X32 ~max_vcpus:8 ~cmdline:"-- quiet console=hvc0 d-i:base-installer/kernel/image=linux-generic-pae" [    ];
+		debian_template "Ubuntu Trusty Tahr 14.04" "trusty" X64_debianlike ~max_mem_gib:128 ~max_vcpus:128 [    ];
 		sdk_install_template
 	] in
 
